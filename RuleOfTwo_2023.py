@@ -29,6 +29,7 @@ def calculate_tv_factor(sw, noise, signal_energy):
     
     Ey1_y2 = np.zeros((numSweeps, numSweeps))
     En1_n2 = np.zeros((numSweeps, numSweeps))
+    En1 = np.zeros((numSweeps))
     Ev1_v2 = np.zeros((numSweeps, numSweeps))
     tau = np.zeros((numSweeps, numSweeps))
     E_sh = np.zeros( numSweeps)
@@ -41,14 +42,20 @@ def calculate_tv_factor(sw, noise, signal_energy):
             
             Ey1_y2[i,j] = calculate_energy_mean(y1_y2)/(len_sweep)
             En1_n2[i,j] = calculate_energy_median(n1_n2)/(len_noise)
+            En1[i] = calculate_energy_median(noise[:, i])/(len_noise)
             
             Ev1_v2[i,j] = Ey1_y2[i,j] - En1_n2[i,j]
             E_sv = Ev1_v2[i,j]/2
-            E_sh[i] = signal_energy[ i] - E_sv
+            E_sh[i] = signal_energy[ i] - E_sv - En1[i]
             
             tau[i,j] = np.abs(Ev1_v2[i,j]/E_sh[i])
             
-    tv_factor = np.median(tau[tau>0])
+    tau = tau[np.triu_indices_from(tau, k=1)] #deduplicates values and removes zeros
+    median = np.median(tau)
+    mad = np.median(np.abs(tau - median))
+
+    tau = tau[tau <= median + 3 * mad]
+    tv_factor = np.median(tau)
     
     return tv_factor
 
